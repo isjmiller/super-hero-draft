@@ -26,6 +26,448 @@ select{font-size:13px;padding:6px 10px;border-radius:7px;border:1px solid #d0cfc
 .nav-tab:hover{color:#333;}.nav-tab.active{color:#185FA5;border-bottom-color:#185FA5;}
 .stat-row{display:grid;grid-template-columns:1fr 110px 32px 32px 32px 32px 32px 32px 32px 32px 32px 32px 48px 48px;gap:0;font-size:11px;padding:6px 6px;border-bottom:1px solid #efefeb;align-items:center;}
 .stat-row.hdr{font-size:10px;color:#888;font-weight:600;border-bottom:1px solid #d0cfc8;background:#fafaf7;position:sticky;top:0;z-index:2;cursor:default;}
+.stat-row>div{text-align:center;}.stat-row>div:first-child{text-align:left;}.stat-row>div:nth-child(2){text-align:center;}
+.roster-row{display:grid;grid-template-columns:44px 1fr 32px 32px 32px 32px 32px 32px 32px 32px 32px 32px 48px 52px;gap:0;font-size:11px;padding:6px 6px;border-bottom:1px solid #efefeb;align-items:center;}
+.roster-row.hdr{font-size:10px;color:#888;font-weight:600;border-bottom:1px solid #d0cfc8;background:#fafaf7;position:sticky;top:0;z-index:2;}
+.roster-row>div{text-align:center;}.roster-row>div:nth-child(2){text-align:left;}
+.board-scroll{max-height:62vh;overflow-y:auto;border:1px solid #e0dfd8;border-radius:8px;}
+.money-bar-bg{width:100%;height:6px;background:#e0dfd8;border-radius:3px;overflow:hidden;}
+.money-bar-fill{height:100%;border-radius:3px;background:#185FA5;transition:width .3s;}
+.stat-card{background:#fff;border:1px solid #e0dfd8;border-radius:10px;padding:.75rem 1rem;}
+</style>
+</head>
+<body>
+<div class="app">
+
+<div id="screen-setup">
+  <div style="max-width:420px;margin:3rem auto;">
+    <div style="text-align:center;margin-bottom:1.5rem;">
+      <div style="font-size:40px;margin-bottom:.5rem;">🏀</div>
+      <div style="font-size:22px;font-weight:700;">My Draft Board</div>
+      <div style="font-size:13px;color:#666;margin-top:.25rem;">Superhero Basketball Draft — Student Tracker</div>
+    </div>
+    <div style="background:#fff;border:1px solid #e0dfd8;border-radius:12px;padding:1.5rem;">
+      <div style="margin-bottom:1rem;">
+        <label style="font-size:12px;color:#666;display:block;margin-bottom:5px;">Your team name</label>
+        <input type="text" id="setup-name" placeholder="e.g. Team Wakanda">
+      </div>
+      <div style="margin-bottom:1.5rem;">
+        <label style="font-size:12px;color:#666;display:block;margin-bottom:5px;">Starting budget</label>
+        <input type="number" id="setup-budget" value="600" min="1">
+        <div style="font-size:11px;color:#888;margin-top:4px;">Your teacher will tell you this number.</div>
+      </div>
+      <button class="btn btn-primary" style="width:100%;padding:11px;font-size:15px;" onclick="startApp()">Enter Draft Room</button>
+      <div id="setup-err" style="font-size:12px;color:#a32d2d;margin-top:.5rem;text-align:center;min-height:18px;"></div>
+    </div>
+  </div>
+</div>
+
+<div id="screen-main" class="hide">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:.75rem;flex-wrap:wrap;">
+    <div style="font-size:22px;">🏀</div>
+    <div>
+      <div style="font-size:16px;font-weight:700;" id="hdr-name"></div>
+      <div style="font-size:12px;color:#666;" id="hdr-sub"></div>
+    </div>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:10px;">
+      <div style="min-width:140px;">
+        <div class="money-bar-bg"><div class="money-bar-fill" id="budget-bar"></div></div>
+      </div>
+      <div style="font-size:15px;font-weight:700;" id="hdr-budget"></div>
+      <span style="font-size:12px;color:#888;">credits left</span>
+    </div>
+  </div>
+
+  <div class="nav-tabs">
+    <div class="nav-tab active" id="ntab-available" onclick="switchTab('available')">Available <span id="cnt-available" style="font-size:11px;color:#bbb;"></span></div>
+    <div class="nav-tab" id="ntab-wishlist" onclick="switchTab('wishlist')">Wish List <span id="cnt-wishlist" style="font-size:11px;color:#bbb;"></span></div>
+    <div class="nav-tab" id="ntab-roster" onclick="switchTab('roster')">My Roster <span id="cnt-roster" style="font-size:11px;color:#bbb;"></span></div>
+    <div class="nav-tab" id="ntab-taken" onclick="switchTab('taken')">Taken <span id="cnt-taken" style="font-size:11px;color:#bbb;"></span></div>
+  </div>
+
+  <div id="tab-available">
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:.6rem;align-items:center;">
+      <input type="text" id="search" placeholder="Search..." oninput="renderAvailable()" style="width:140px;">
+      <select id="pos-filter" onchange="renderAvailable()">
+        <option value="">All positions</option>
+        <option>PG</option><option>SG</option><option>SF</option><option>PF</option><option>C</option>
+      </select>
+      <select id="grp-filter" onchange="renderAvailable()">
+        <option value="">All groups</option>
+        <option>DC Heroes</option><option>DC Villains</option><option>Marvel Heroes</option><option>Marvel Villains</option>
+      </select>
+      <label style="font-size:12px;color:#666;display:flex;align-items:center;gap:4px;cursor:pointer;">
+        <input type="checkbox" id="afford-only" onchange="renderAvailable()"> Can afford only
+      </label>
+    </div>
+    <div style="font-size:11px;color:#888;margin-bottom:.4rem;"><b style="color:#27500a;">Draft</b> = adds to your roster &nbsp;|&nbsp; <b style="color:#185FA5;">★</b> = wish list &nbsp;|&nbsp; <b style="color:#a32d2d;">✕</b> = mark as taken by another team</div>
+    <div class="board-scroll"><div style="min-width:820px;">
+      <div class="stat-row hdr"><div>Player</div><div>Actions</div><div>Spd</div><div>Agi</div><div>Str</div><div>Tm</div><div>IQ</div><div>Sht</div><div>3PT</div><div>Pas</div><div>Def</div><div>Reb</div><div>OVR</div><div>Cost</div></div>
+      <div id="avail-list"></div>
+    </div></div>
+  </div>
+
+  <div id="tab-wishlist" class="hide">
+    <div style="font-size:12px;color:#666;margin-bottom:.75rem;">Your target players. Hit <b>Draft</b> when it's your turn.</div>
+    <div class="board-scroll"><div style="min-width:820px;">
+      <div class="stat-row hdr"><div>Player</div><div>Actions</div><div>Spd</div><div>Agi</div><div>Str</div><div>Tm</div><div>IQ</div><div>Sht</div><div>3PT</div><div>Pas</div><div>Def</div><div>Reb</div><div>OVR</div><div>Cost</div></div>
+      <div id="wish-list"></div>
+    </div></div>
+  </div>
+
+  <div id="tab-roster" class="hide">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1rem;">
+      <div class="stat-card"><div style="font-size:11px;color:#666;">Budget remaining</div><div style="font-size:24px;font-weight:700;" id="rs-budget"></div></div>
+      <div class="stat-card"><div style="font-size:11px;color:#666;">Players drafted</div><div style="font-size:24px;font-weight:700;" id="rs-count"></div></div>
+      <div class="stat-card"><div style="font-size:11px;color:#666;">Total spent</div><div style="font-size:24px;font-weight:700;" id="rs-spent"></div></div>
+    </div>
+    <div class="board-scroll"><div style="min-width:840px;">
+      <div class="roster-row hdr"><div>Pos</div><div>Player</div><div>Spd</div><div>Agi</div><div>Str</div><div>Tm</div><div>IQ</div><div>Sht</div><div>3PT</div><div>Pas</div><div>Def</div><div>Reb</div><div>OVR</div><div>Cost</div></div>
+      <div id="roster-list"></div>
+    </div></div>
+    <div id="roster-empty" class="hide" style="font-size:13px;color:#888;padding:1rem 0;">No players drafted yet — head to Available to start picking!</div>
+  </div>
+
+  <div id="tab-taken" class="hide">
+    <div style="font-size:12px;color:#666;margin-bottom:.75rem;">Players taken by other teams. Hit <b>Restore</b> if you made a mistake.</div>
+    <div class="board-scroll"><div style="min-width:820px;">
+      <div class="stat-row hdr"><div>Player</div><div>Actions</div><div>Spd</div><div>Agi</div><div>Str</div><div>Tm</div><div>IQ</div><div>Sht</div><div>3PT</div><div>Pas</div><div>Def</div><div>Reb</div><div>OVR</div><div>Cost</div></div>
+      <div id="taken-list"></div>
+    </div></div>
+    <div id="taken-empty" style="font-size:13px;color:#888;padding:1rem 0;">No players marked as taken yet.</div>
+  </div>
+</div>
+
+</div>
+<script>
+var GC={'DC Heroes':{bg:'#e6f1fb',tc:'#0c447c'},'DC Villains':{bg:'#fcebeb',tc:'#791f1f'},'Marvel Heroes':{bg:'#eaf3de',tc:'#27500a'},'Marvel Villains':{bg:'#fac775',tc:'#633806'}};
+var PM={
+'Superman':'C','Wonder Woman':'PF','Black Panther':'SF','Vision':'PF','Shang-Chi':'PG','Captain Marvel':'SF','The Flash':'PG','Captain America':'SF','Batman':'SG','Cull Obsidian':'C','Harley Quinn':'PG','Mantis':'PG','Daredevil':'SG','Ant-Man':'PG','Ego the Living Planet':'C','Killmonger':'SF','Hawkman':'SF','The Atom':'PG','Blade':'SG','Gamora':'SF','Vulture':'SF','Venom':'PF','Spider-Man':'SG','The Collector':'PF','Groot':'C','Rocket Raccoon':'PG','Cheetah':'SF','Sinestro':'SF','Two-Face':'SG','King Shark':'C','Red Skull':'PF','Poison Ivy':'PF','Hulk':'C','Shazam':'C','Wolverine':'PF','Falcon':'SG','Moon Knight':'SG','Winter Soldier':'SG','Aquaman':'PF','Hawkeye':'SG','Flash':'PG','Scarlet Witch':'PF','Doctor Doom':'PF','Luke Cage':'C','Blue Beetle':'SG','Riddler':'PG','Magneto':'C','Galactus':'C','Scarecrow':'SG','Bane':'PF','Proxima Midnight':'SF','Mysterio':'SG','Taskmaster':'SG','General Zod':'PF','Kingpin':'PF',"Ra's al Ghul":'SF','Hela':'PF','Star-Lord':'SF','Doctor Strange':'PF','Black Manta':'SG','Thor':'C','Corvus Glaive':'SF','Nebula':'SG','Mystique':'PG','Deadpool':'PF','Lex Luthor':'PG','Green Lantern':'SF','Loki':'PG','Joker':'PG','Mandarin':'PG','Talia al Ghul':'SG','Ebony Maw':'C','Iron Man':'SG','Ronan the Accuser':'PF','Jessica Jones':'PF','Kang the Conqueror':'PG','Cyborg':'C','Deathstroke':'SF','Bullseye':'SG','Green Arrow':'SG','Black Widow':'SG','Darkseid':'C','Thanos':'C','Batgirl':'PG','Green Goblin':'SF','Martian Manhunter':'PF','Baron Zemo':'SF','Ultron':'C','Nightwing':'SG','The Penguin':'C',
+'Mr. Fantastic':'PF','Sue Storm':'PG','Johnny Storm':'SF','The Thing':'C','Red Guardian':'PF','John Walker':'SF','Mr. Freeze':'SG','Gambit':'SG','Storm':'SF','Beast':'C',
+'Squirrel Girl':'SF','Dazzler':'SF','Big Bertha':'C','Maggott':'PF','Arm-Fall-Off Boy':'C','Matter-Eater Lad':'PF','Hindsight Lad':'PG','Doorman':'PG','Typeface':'SG','Color Kid':'SG','Gin Genie':'PG','Zeitgeist':'SG','Asbestos Lady':'PF','NFL SuperPro':'SF','Thundersquirrel':'PF',
+'Isaac Miller':'PG','Isaac Phantichob':'PG','Barbie Solbakken':'SG'
+};
+var ALL=[
+['DC Heroes','Superman',99,99,99,90,85,85,60,90,95,90,89.2,250],
+['DC Heroes','Wonder Woman',95,95,95,90,85,80,75,85,99,90,88.9,245],
+['Marvel Heroes','Black Panther',90,90,85,95,92,85,80,90,95,85,88.7,240],
+['Marvel Heroes','Vision',95,90,85,85,95,80,85,90,95,85,88.5,235],
+['Marvel Heroes','Shang-Chi',78,86,96,82,83,91,94,84,93,88,87.5,225],
+['Marvel Heroes','Captain Marvel',95,90,90,90,85,85,75,85,95,85,87.5,230],
+['DC Heroes','The Flash',99,86,91,99,95,73,82,89,87,66,86.7,220],
+['Marvel Heroes','Captain America',88,90,95,99,92,75,60,80,95,85,85.9,210],
+['DC Heroes','Batman',80,88,85,97,99,88,65,96,81,80,85.9,215],
+['Marvel Villains','Cull Obsidian',60,95,89,96,99,93,76,96,64,83,85.1,205],
+['DC Villains','Harley Quinn',91,78,94,90,89,82,82,84,70,90,85.0,200],
+['Marvel Heroes','Mantis',89,91,91,89,78,91,91,83,76,65,84.4,197],
+['Marvel Heroes','Daredevil',94,94,98,88,89,69,66,78,90,77,84.3,191],
+['Marvel Heroes','Ant-Man',84,90,86,98,93,84,84,82,74,68,84.3,194],
+['Marvel Villains','Ego the Living Planet',80,99,68,94,77,99,89,87,71,72,83.6,185],
+['Marvel Villains','Killmonger',90,96,72,94,73,96,87,70,91,67,83.6,188],
+['DC Heroes','Hawkman',68,92,81,94,88,93,84,69,84,82,83.5,182],
+['DC Heroes','The Atom',97,96,61,61,73,93,98,84,73,98,83.4,179],
+['Marvel Heroes','Blade',99,93,62,97,62,67,94,99,79,79,83.1,176],
+['Marvel Heroes','Gamora',99,96,87,89,75,95,65,67,74,83,83.0,173],
+['Marvel Villains','Vulture',92,62,90,91,75,87,67,71,97,97,82.9,164],
+['Marvel Villains','Venom',77,60,83,98,98,85,89,68,91,80,82.9,167],
+['Marvel Heroes','Spider-Man',85,99,80,85,80,80,75,85,85,75,82.9,170],
+['Marvel Villains','The Collector',99,97,85,60,61,85,90,75,92,84,82.8,161],
+['Marvel Heroes','Groot',98,79,77,70,62,93,73,98,99,78,82.7,155],
+['Marvel Heroes','Gamora',96,78,86,97,76,90,75,98,64,67,82.7,158],
+['Marvel Heroes','Rocket Raccoon',80,85,60,95,99,85,85,90,85,60,82.4,152],
+['DC Villains','Cheetah',68,94,80,71,82,64,82,94,93,95,82.3,149],
+['DC Villains','Sinestro',73,98,81,88,68,98,78,75,81,82,82.2,146],
+['DC Villains','Two-Face',94,67,88,98,97,71,83,72,76,76,82.2,143],
+['DC Villains','King Shark',97,77,73,83,79,79,95,79,61,96,81.9,140],
+['Marvel Villains','Red Skull',63,74,98,99,60,61,97,99,74,93,81.8,134],
+['DC Villains','Poison Ivy',92,88,62,81,98,77,99,94,62,65,81.8,137],
+['Marvel Heroes','Hulk',90,85,99,80,75,60,60,70,99,99,81.7,131],
+['DC Heroes','Shazam',99,99,96,85,64,76,81,88,63,64,81.5,128],
+['Marvel Heroes','Wolverine',68,81,89,71,67,96,84,91,91,76,81.4,125],
+['Marvel Heroes','Falcon',93,69,89,73,62,81,94,99,79,75,81.4,122],
+['Marvel Heroes','Moon Knight',93,82,67,82,88,87,68,89,93,65,81.4,119],
+['Marvel Heroes','Winter Soldier',97,74,61,74,98,94,70,93,90,62,81.3,116],
+['DC Heroes','Aquaman',81,78,76,65,97,70,91,92,77,84,81.1,113],
+['Marvel Heroes','Hawkeye',91,90,68,92,78,61,77,99,75,70,80.1,110],
+['DC Heroes','Flash',88,93,87,63,70,79,77,91,90,62,80.0,107],
+['Marvel Heroes','Scarlet Witch',88,88,79,94,81,73,74,68,73,81,79.9,105],
+['Marvel Villains','Doctor Doom',99,70,92,78,71,66,96,83,82,62,79.9,103],
+['Marvel Heroes','Luke Cage',68,68,94,95,74,76,62,88,90,83,79.8,101],
+['DC Heroes','Blue Beetle',76,92,60,79,70,97,88,77,84,74,79.7,99],
+['DC Villains','Riddler',98,71,81,85,83,73,83,96,60,67,79.7,97],
+['Marvel Villains','Magneto',91,92,99,65,79,62,65,90,67,86,79.6,95],
+['Marvel Villains','Galactus',77,87,68,85,99,67,91,76,81,65,79.6,93],
+['DC Villains','Scarecrow',92,92,68,82,82,61,96,64,90,68,79.5,91],
+['DC Villains','Bane',81,89,62,76,75,78,92,68,73,99,79.3,87],
+['Marvel Villains','Proxima Midnight',77,70,81,85,81,69,92,80,69,89,79.3,89],
+['Marvel Villains','Mysterio',69,76,90,70,70,88,83,75,90,82,79.3,81],
+['Marvel Villains','Taskmaster',76,77,86,88,86,65,98,72,80,65,79.3,83],
+['DC Villains','General Zod',87,88,79,98,84,61,82,63,88,63,79.3,85],
+['Marvel Villains','Kingpin',67,85,97,65,84,91,79,65,77,82,79.2,79],
+['DC Villains',"Ra's al Ghul",81,86,80,68,61,89,71,97,74,84,79.1,77],
+['Marvel Villains','Hela',85,85,85,75,70,80,75,70,85,80,79.0,75],
+['Marvel Heroes','Star-Lord',88,91,92,84,63,66,63,84,80,77,78.8,73],
+['Marvel Heroes','Doctor Strange',80,80,75,90,99,75,60,85,80,60,78.4,71],
+['DC Villains','Black Manta',87,86,70,63,70,82,92,76,67,90,78.3,69],
+['Marvel Heroes','Thor',61,82,75,98,62,76,76,79,97,76,78.2,67],
+['Marvel Villains','Corvus Glaive',74,82,82,67,68,79,67,94,69,99,78.1,65],
+['Marvel Heroes','Nebula',76,95,61,90,97,74,76,60,70,80,77.9,63],
+['Marvel Villains','Mystique',70,90,74,60,63,95,77,96,73,77,77.5,59],
+['Marvel Heroes','Deadpool',81,95,62,92,67,92,78,81,62,65,77.5,61],
+['DC Villains','Lex Luthor',66,83,63,70,77,89,90,89,78,69,77.4,57],
+['DC Heroes','Green Lantern',94,65,73,77,63,76,74,79,74,97,77.2,55],
+['Marvel Villains','Loki',93,63,60,86,88,97,66,84,68,67,77.2,53],
+['DC Villains','Joker',84,69,97,74,86,71,70,78,69,72,77.0,51],
+['Marvel Villains','Mandarin',87,60,69,97,82,82,66,74,81,71,76.9,47],
+['DC Villains','Talia al Ghul',62,97,83,76,69,69,77,74,95,67,76.9,49],
+['Marvel Villains','Ebony Maw',82,75,78,66,62,83,80,84,61,96,76.7,45],
+['Marvel Heroes','Iron Man',85,60,86,62,64,99,78,84,60,89,76.7,43],
+['Marvel Villains','Ronan the Accuser',79,91,72,64,68,78,98,62,80,75,76.7,41],
+['Marvel Heroes','Jessica Jones',82,68,75,98,69,60,78,66,71,98,76.5,39],
+['Marvel Villains','Kang the Conqueror',76,75,97,77,68,92,68,73,68,71,76.5,37],
+['DC Heroes','Cyborg',68,98,62,75,66,98,79,61,61,96,76.4,35],
+['DC Villains','Deathstroke',65,93,62,60,76,70,84,94,91,68,76.3,33],
+['Marvel Villains','Bullseye',63,86,85,75,78,99,66,63,67,80,76.2,31],
+['DC Heroes','Green Arrow',77,66,78,64,61,95,82,67,69,93,75.2,29],
+['Marvel Heroes','Black Widow',70,62,78,95,61,66,92,67,88,73,75.2,25],
+['DC Villains','Darkseid',75,91,72,71,75,69,61,75,97,66,75.2,27],
+['Marvel Villains','Thanos',61,99,70,89,65,78,79,71,60,78,75.0,23],
+['DC Heroes','Batgirl',60,73,64,78,75,89,62,89,75,83,74.8,22],
+['Marvel Villains','Green Goblin',68,71,92,87,66,65,75,69,78,71,74.2,21],
+['DC Heroes','Martian Manhunter',72,84,63,86,61,87,77,65,66,70,73.1,20],
+['Marvel Villains','Baron Zemo',80,69,86,61,65,60,71,73,66,99,73.0,19],
+['Marvel Villains','Ultron',64,74,66,86,84,79,79,63,62,67,72.4,18],
+['DC Heroes','Nightwing',74,91,66,63,71,60,68,79,85,62,71.9,17],
+['DC Villains','The Penguin',70,71,79,71,65,80,72,60,83,60,71.1,16],
+['Marvel Heroes','Mr. Fantastic',72,85,68,88,94,74,71,89,76,62,79.1,112],
+['Marvel Heroes','Sue Storm',78,82,61,84,87,79,83,91,72,58,78.6,98],
+['Marvel Heroes','Johnny Storm',94,88,74,71,72,80,77,68,70,55,77.3,89],
+['Marvel Heroes','The Thing',58,62,98,79,71,65,60,72,88,95,76.8,95],
+['Marvel Heroes','Red Guardian',81,79,88,85,74,70,65,76,90,82,78.2,91],
+['Marvel Heroes','John Walker',83,80,90,78,72,68,62,74,86,80,77.5,88],
+['DC Villains','Mr. Freeze',74,71,82,61,88,85,79,68,77,66,75.9,78],
+['Marvel Heroes','Gambit',88,91,72,74,79,88,86,82,75,64,79.4,103],
+['Marvel Heroes','Storm',85,86,69,82,83,84,80,77,81,70,79.7,107],
+['Marvel Heroes','Beast',76,80,91,83,86,72,68,79,84,88,80.3,115],
+['Marvel Heroes','Squirrel Girl',72,78,65,81,69,62,58,74,66,70,69.5,15],
+['Marvel Heroes','Dazzler',68,74,55,72,71,77,73,65,60,52,66.7,13],
+['Marvel Heroes','Big Bertha',55,58,88,64,62,55,50,61,72,84,64.9,12],
+['Marvel Heroes','Maggott',61,60,74,58,55,52,48,57,64,68,59.7,10],
+['DC Heroes','Arm-Fall-Off Boy',50,45,68,55,42,48,44,52,58,62,52.4,8],
+['DC Heroes','Matter-Eater Lad',48,52,44,61,58,50,46,55,42,48,50.4,8],
+['DC Heroes','Hindsight Lad',44,48,40,58,65,46,42,60,38,44,48.5,8],
+['DC Heroes','Doorman',55,62,42,60,59,48,50,58,44,46,52.4,9],
+['DC Villains','Typeface',58,55,62,50,52,56,54,48,55,50,54.0,10],
+['DC Heroes','Color Kid',46,50,38,55,52,60,58,54,40,42,49.5,8],
+['DC Villains','Gin Genie',62,58,50,44,48,55,52,46,50,44,50.9,9],
+['DC Villains','Zeitgeist',60,64,55,48,52,58,60,50,48,46,54.1,10],
+['Marvel Villains','Asbestos Lady',52,48,58,46,50,54,50,44,52,48,50.2,9],
+['Marvel Heroes','NFL SuperPro',65,62,70,58,48,55,52,60,62,64,59.6,11],
+['Marvel Heroes','Thundersquirrel',58,66,52,62,56,54,58,60,50,48,56.4,10],
+['DC Heroes','Isaac Miller',32,28,24,41,35,29,31,27,33,22,30.2,1],
+['DC Heroes','Isaac Phantichob',29,31,26,38,33,27,30,28,35,24,30.1,2],
+['DC Heroes','Barbie Solbakken',33,27,28,35,30,31,26,33,29,27,29.9,2]
+];
+
+var state={teamName:'',initialBudget:600,budget:600,roster:[],wishlist:[],taken:[]};
+
+function startApp(){
+  var name=document.getElementById('setup-name').value.trim();
+  if(!name){document.getElementById('setup-err').textContent='Please enter your team name.';return;}
+  var budget=parseInt(document.getElementById('setup-budget').value)||600;
+  state.teamName=name;state.initialBudget=budget;state.budget=budget;
+  document.getElementById('screen-setup').style.display='none';
+  document.getElementById('screen-main').classList.remove('hide');
+  updateHeader();renderAll();
+}
+
+function updateHeader(){
+  var pct=Math.round((state.budget/state.initialBudget)*100);
+  document.getElementById('hdr-name').textContent=state.teamName;
+  document.getElementById('hdr-sub').textContent='Superhero Basketball Draft';
+  document.getElementById('hdr-budget').textContent=state.budget;
+  var bar=document.getElementById('budget-bar');
+  bar.style.width=pct+'%';
+  bar.style.background=pct<=20?'#e24b4a':pct<=40?'#ba7517':'#185FA5';
+}
+
+function ot(v){return v>=87?'be':v>=82?'bg2':v>=77?'bok':'blo';}
+function sc(v){return v>=95?'sh':v<=65?'sl':'';}
+function gone(i){return state.roster.indexOf(i)>=0||state.taken.indexOf(i)>=0;}
+
+function pRow(pid,mode){
+  var p=ALL[pid],pos=PM[p[1]]||'SF',gc=GC[p[0]]||{bg:'#eee',tc:'#333'},cant=p[13]>state.budget;
+  var starred=state.wishlist.indexOf(pid)>=0;
+  var actions='';
+  if(mode==='available'){
+    actions='<button class="btn btn-green btn-sm" '+(cant?'disabled style="opacity:0.4;cursor:not-allowed;"':'')+' onclick="doDraft('+pid+')">Draft</button> '
+      +'<button class="btn btn-sm" style="color:'+(starred?'#185FA5':'#bbb')+';font-size:15px;padding:3px 7px;" onclick="doWish('+pid+')">★</button> '
+      +'<button class="btn btn-sm btn-danger" onclick="doTake('+pid+')" title="Mark taken">✕</button>';
+  } else if(mode==='wishlist'){
+    actions='<button class="btn btn-green btn-sm" '+(cant?'disabled style="opacity:0.4;cursor:not-allowed;"':'')+' onclick="doDraft('+pid+')">Draft</button> '
+      +'<button class="btn btn-sm btn-danger" onclick="doWish('+pid+')">Remove</button> '
+      +'<button class="btn btn-sm btn-danger" onclick="doTake('+pid+')" title="Mark taken">✕</button>';
+  } else if(mode==='taken'){
+    actions='<button class="btn btn-sm" onclick="doRestore('+pid+')">Restore</button>';
+  }
+  return '<div class="stat-row" style="'+(cant&&mode==='available'?'opacity:0.4;':'')+'">'
+    +'<div style="display:flex;align-items:center;gap:7px;">'
+    +'<div style="width:22px;height:22px;border-radius:50%;background:'+gc.bg+';color:'+gc.tc+';display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;">'+p[1][0]+'</div>'
+    +'<div><div style="font-size:12px;font-weight:600;">'+p[1]+'</div><div style="font-size:10px;color:#888;"><span class="tag">'+pos+'</span> '+p[0]+'</div></div></div>'
+    +'<div style="display:flex;gap:3px;justify-content:center;flex-wrap:wrap;">'+actions+'</div>'
+    +'<div class="'+sc(p[2])+'">'+p[2]+'</div><div class="'+sc(p[3])+'">'+p[3]+'</div><div class="'+sc(p[4])+'">'+p[4]+'</div>'
+    +'<div class="'+sc(p[5])+'">'+p[5]+'</div><div class="'+sc(p[6])+'">'+p[6]+'</div><div class="'+sc(p[7])+'">'+p[7]+'</div>'
+    +'<div class="'+sc(p[8])+'">'+p[8]+'</div><div class="'+sc(p[9])+'">'+p[9]+'</div><div class="'+sc(p[10])+'">'+p[10]+'</div>'
+    +'<div class="'+sc(p[11])+'">'+p[11]+'</div>'
+    +'<div><span class="badge '+ot(p[12])+'">'+p[12].toFixed(1)+'</span></div>'
+    +'<div><span class="badge bcost">'+p[13]+'</span></div>'
+    +'</div>';
+}
+
+function doDraft(pid){
+  var p=ALL[pid];
+  if(p[13]>state.budget){alert("Can't afford "+p[1]+"! Cost: "+p[13]+", budget: "+state.budget);return;}
+  if(state.roster.indexOf(pid)<0)state.roster.push(pid);
+  state.wishlist=state.wishlist.filter(function(x){return x!==pid;});
+  state.taken=state.taken.filter(function(x){return x!==pid;});
+  state.budget-=p[13];
+  updateHeader();renderAll();
+}
+function undoDraft(pid){
+  var p=ALL[pid];
+  state.roster=state.roster.filter(function(x){return x!==pid;});
+  state.budget+=p[13];
+  updateHeader();renderAll();
+}
+function doWish(pid){
+  var idx=state.wishlist.indexOf(pid);
+  if(idx>=0)state.wishlist.splice(idx,1);else state.wishlist.push(pid);
+  renderAll();
+}
+function doTake(pid){
+  if(state.taken.indexOf(pid)<0)state.taken.push(pid);
+  state.wishlist=state.wishlist.filter(function(x){return x!==pid;});
+  renderAll();
+}
+function doRestore(pid){
+  state.taken=state.taken.filter(function(x){return x!==pid;});
+  renderAll();
+}
+
+function renderAll(){
+  renderAvailable();renderWishlist();renderRoster();renderTaken();
+  var avail=ALL.filter(function(_,i){return !gone(i);}).length;
+  document.getElementById('cnt-available').textContent='('+avail+')';
+  document.getElementById('cnt-wishlist').textContent=state.wishlist.length?'('+state.wishlist.length+')':'';
+  document.getElementById('cnt-roster').textContent=state.roster.length?'('+state.roster.length+')':'';
+  document.getElementById('cnt-taken').textContent=state.taken.length?'('+state.taken.length+')':'';
+}
+
+function renderAvailable(){
+  var q=(document.getElementById('search').value||'').toLowerCase();
+  var pf=document.getElementById('pos-filter').value;
+  var gf=document.getElementById('grp-filter').value;
+  var af=document.getElementById('afford-only').checked;
+  var rows=[];
+  for(var i=0;i<ALL.length;i++){
+    if(gone(i))continue;
+    var p=ALL[i];
+    if(q&&p[1].toLowerCase().indexOf(q)<0)continue;
+    if(pf&&PM[p[1]]!==pf)continue;
+    if(gf&&p[0]!==gf)continue;
+    if(af&&p[13]>state.budget)continue;
+    rows.push(i);
+  }
+  document.getElementById('avail-list').innerHTML=rows.length?rows.map(function(i){return pRow(i,'available');}).join(''):'<div style="padding:1rem;font-size:13px;color:#888;">No players match your filters.</div>';
+}
+
+function renderWishlist(){
+  var active=state.wishlist.filter(function(i){return !gone(i);});
+  document.getElementById('wish-list').innerHTML=active.length?active.map(function(i){return pRow(i,'wishlist');}).join(''):'<div style="padding:1rem;font-size:13px;color:#888;">No players starred yet. Use ★ in the Available tab.</div>';
+}
+
+function renderRoster(){
+  document.getElementById('rs-budget').textContent=state.budget;
+  document.getElementById('rs-count').textContent=state.roster.length;
+  document.getElementById('rs-spent').textContent=state.initialBudget-state.budget;
+  var empty=state.roster.length===0;
+  document.getElementById('roster-empty').style.display=empty?'block':'none';
+  if(empty){document.getElementById('roster-list').innerHTML='';return;}
+  document.getElementById('roster-list').innerHTML=state.roster.map(function(pid){
+    var p=ALL[pid],pos=PM[p[1]]||'SF',gc=GC[p[0]]||{bg:'#eee',tc:'#333'};
+    return '<div class="roster-row">'
+      +'<div><span class="tag">'+pos+'</span></div>'
+      +'<div style="display:flex;align-items:center;gap:7px;"><div style="width:22px;height:22px;border-radius:50%;background:'+gc.bg+';color:'+gc.tc+';display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;">'+p[1][0]+'</div><span style="font-size:12px;font-weight:600;">'+p[1]+'</span></div>'
+      +'<div class="'+sc(p[2])+'">'+p[2]+'</div><div class="'+sc(p[3])+'">'+p[3]+'</div><div class="'+sc(p[4])+'">'+p[4]+'</div>'
+      +'<div class="'+sc(p[5])+'">'+p[5]+'</div><div class="'+sc(p[6])+'">'+p[6]+'</div><div class="'+sc(p[7])+'">'+p[7]+'</div>'
+      +'<div class="'+sc(p[8])+'">'+p[8]+'</div><div class="'+sc(p[9])+'">'+p[9]+'</div><div class="'+sc(p[10])+'">'+p[10]+'</div>'
+      +'<div class="'+sc(p[11])+'">'+p[11]+'</div>'
+      +'<div><span class="badge '+ot(p[12])+'">'+p[12].toFixed(1)+'</span></div>'
+      +'<div><span class="badge bcost">'+p[13]+'</span><br><button class="btn btn-sm btn-danger" style="margin-top:2px;font-size:10px;padding:2px 5px;" onclick="undoDraft('+pid+')">Undo</button></div>'
+      +'</div>';
+  }).join('');
+}
+
+function renderTaken(){
+  var empty=state.taken.length===0;
+  document.getElementById('taken-empty').style.display=empty?'block':'none';
+  document.getElementById('taken-list').innerHTML=state.taken.map(function(i){return pRow(i,'taken');}).join('');
+}
+
+function switchTab(name){
+  var tabs=['available','wishlist','roster','taken'];
+  for(var i=0;i<tabs.length;i++){
+    var t=tabs[i];
+    document.getElementById('ntab-'+t).className='nav-tab'+(t===name?' active':'');
+    var el=document.getElementById('tab-'+t);
+    if(t===name)el.classList.remove('hide');else el.classList.add('hide');
+  }
+  if(name==='available')renderAvailable();
+  if(name==='wishlist')renderWishlist();
+  if(name==='roster')renderRoster();
+  if(name==='taken')renderTaken();
+}
+
+(function(){
+  var params=new URLSearchParams(window.location.search);
+  var b=parseInt(params.get('budget'));
+  if(!isNaN(b)){
+    document.getElementById('setup-budget').value=b;
+    document.getElementById('setup-budget').readOnly=true;
+    document.getElementById('setup-budget').style.background='#f0efe8';
+  }
+})();
+</script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Draft Board</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f5f5f2;color:#1a1a18;font-size:14px;line-height:1.5;}
+.app{max-width:1100px;margin:0 auto;padding:1rem;}
+.hide{display:none;}
+.btn{font-size:13px;padding:6px 14px;border-radius:7px;border:1px solid #d0cfc8;background:#fff;color:#1a1a18;cursor:pointer;font-family:inherit;}
+.btn:hover{background:#f0efe8;}
+.btn-primary{background:#185FA5;color:#fff;border-color:#185FA5;}
+.btn-green{background:#eaf3de;color:#27500a;border-color:#97c459;}
+.btn-danger{background:#fff0f0;color:#7a1f1f;border-color:#f09595;}
+.btn-sm{font-size:12px;padding:4px 10px;}
+input[type=text],input[type=number]{font-size:13px;padding:7px 10px;border-radius:7px;border:1px solid #d0cfc8;background:#fff;color:#1a1a18;outline:none;font-family:inherit;width:100%;}
+select{font-size:13px;padding:6px 10px;border-radius:7px;border:1px solid #d0cfc8;background:#fff;color:#1a1a18;outline:none;font-family:inherit;cursor:pointer;}
+.tag{display:inline-block;font-size:10px;padding:1px 5px;border-radius:3px;background:#f0efe8;color:#666;border:1px solid #e0dfd8;}
+.badge{display:inline-block;font-size:11px;padding:2px 7px;border-radius:4px;font-weight:600;}
+.be{background:#b5d4f4;color:#0c447c;}.bg2{background:#c0dd97;color:#27500a;}.bok{background:#fac775;color:#633806;}.blo{background:#d3d1c7;color:#444441;}.bcost{background:#eeedfe;color:#3c3489;}
+.sh{color:#27500a;font-weight:600;}.sl{color:#a32d2d;}
+.nav-tabs{display:flex;border-bottom:2px solid #e0dfd8;margin-bottom:1rem;}
+.nav-tab{font-size:13px;font-weight:500;padding:7px 16px;cursor:pointer;color:#888;border-bottom:3px solid transparent;margin-bottom:-2px;white-space:nowrap;}
+.nav-tab:hover{color:#333;}.nav-tab.active{color:#185FA5;border-bottom-color:#185FA5;}
+.stat-row{display:grid;grid-template-columns:1fr 110px 32px 32px 32px 32px 32px 32px 32px 32px 32px 32px 48px 48px;gap:0;font-size:11px;padding:6px 6px;border-bottom:1px solid #efefeb;align-items:center;}
+.stat-row.hdr{font-size:10px;color:#888;font-weight:600;border-bottom:1px solid #d0cfc8;background:#fafaf7;position:sticky;top:0;z-index:2;cursor:default;}
 .stat-row>div{text-align:center;}.stat-row>div:first-child{text-align:left;}
 .roster-row{display:grid;grid-template-columns:44px 1fr 32px 32px 32px 32px 32px 32px 32px 32px 32px 32px 48px 52px;gap:0;font-size:11px;padding:6px 6px;border-bottom:1px solid #efefeb;align-items:center;}
 .roster-row.hdr{font-size:10px;color:#888;font-weight:600;border-bottom:1px solid #d0cfc8;background:#fafaf7;position:sticky;top:0;z-index:2;}
